@@ -1,0 +1,51 @@
+{
+  "events": [
+    {
+      "description": "A family journey from Calgary through Alberta towards the Rockies, experiencing various sights along the way.",
+      "name": "Road trip to the Rockies"
+    },
+    {
+      "description": "Stopping at a small town diner to enjoy burgers and fries before continuing the journey.",
+      "name": "Lunch at the diner"
+    },
+    {
+      "description": "Gathering around a campfire at a secluded cabin, roasting marshmallows and sharing stories.",
+      "name": "Evening campfire"
+    }
+  ],
+  "locations": [
+    {
+      "description": "The city from which the family started their journey, quiet and peaceful in the morning.",
+      "name": "Calgary"
+    },
+    {
+      "description": "A small diner with wooden booths and a jukebox, where they stopped for lunch.",
+      "name": "Diner"
+    },
+    {
+      "description": "A small rustic cabin located near a crystal-clear lake, surrounded by the Rockies.",
+      "name": "Secluded cabin"
+    },
+    {
+      "description": "The area around the cabin where the family gathered around a campfire.",
+      "name": "Campsite"
+    }
+  ],
+  "people": [
+    {
+      "description": "James, a sturdy man with graying hair and a calm demeanor, driving the family to the mountains.",
+      "name": "Father"
+    },
+    {
+      "description": "Evelyn, elegant and caring, wearing a blue dress and taking care of the children during the trip.",
+      "name": "Mother"
+    },
+    {
+      "description": "A 10-year-old sister with wild blonde curls, bubbling with excitement about the mountains.",
+      "name": "Lucy"
+    }
+  ],
+  "time": {
+    "description": "A warm summer day in July 1955, early in the morning until late afternoon."
+  }
+}
