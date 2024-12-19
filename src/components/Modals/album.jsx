@@ -1,14 +1,14 @@
-import { Close } from "@mui/icons-material";
+import { ArrowForward, Close, Redo } from "@mui/icons-material";
 import {
   AppBar,
   Box,
   Button,
-  CircularProgress,
   IconButton,
   ImageList,
   ImageListItem,
   ImageListItemBar,
   MobileStepper,
+  Skeleton,
   Snackbar,
   Toolbar,
   Tooltip,
@@ -20,6 +20,7 @@ import axios from "axios";
 import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import { useTheme } from "@mui/material/styles";
+import { LoadingButton } from "@mui/lab";
 
 export default function Album({
   events,
@@ -36,11 +37,13 @@ export default function Album({
   albumArr,
   setAlbumArr,
 }) {
-  const [imagesLoading, setImagesLoading] = useState(false);
   const [imageData, setImageData] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [exitMessage, setExitMessage] = useState(false);
   const [checkStepClick, setCheckStepClick] = useState(false);
+  const [nextLoading, setNextLoading] = useState(false);
+  const [redoLoading, setRedoLoading] = useState(false);
+  const [storyLoading, setStoryLoading] = useState(false);
   const hasFetched = useRef(false);
 
   const theme = useTheme();
@@ -48,8 +51,9 @@ export default function Album({
   useEffect(() => {
     if (!hasFetched.current) {
       hasFetched.current = true;
-      setImagesLoading(true);
-      fetchImages(albumData.count, 0, albumData);
+      const imgData = new Array(albumData.count).fill(null);
+      setImageData(imgData);
+      fetchImages(albumData.count, albumData);
     }
   }, []);
 
@@ -68,7 +72,7 @@ export default function Album({
           id: retrievedAlbum.id,
           title: retrievedAlbum.title,
           story: retrievedAlbum.story,
-          event: events[activeStep]
+          event: events[activeStep],
         };
         setAlbumData((prev) => ({
           ...prev,
@@ -82,49 +86,40 @@ export default function Album({
     }
   }, [activeStep]);
 
-  console.log(albumArr, "kunwar");
+  const fetchImages = (imgCount, albumMetadata) => {
+    let images = new Array(imgCount).fill(null);
 
-  const fetchImages = (imgCount, index, albumMetadata) => {
-    const promises = [];
-    for (let i = 0; i < imgCount; i++) {
+    const promises = Array.from({ length: imgCount }, (_, i) => {
       const data = {
-        "album-id": albumData.id,
+        "album-id": albumMetadata.id,
         "image-index": i,
       };
-      promises.push(
-        axios
-          .post("https://autobiographygallery.com/api/album-image", data)
-          .then(
-            (response) => ({ status: "fulfilled", value: response.data }),
-            (error) => ({ status: "rejected", reason: error })
-          )
-      );
-    }
-    Promise.allSettled(promises).then((results) => {
-      const fulfilledResults = results
-        .filter((result) => result.status === "fulfilled")
-        .map((result) => result.value);
-      if (fulfilledResults.length > 0) {
-        let images = [];
-        for (let i = 0; i < fulfilledResults.length; i++) {
-          images.push(fulfilledResults[i].value);
-        }
-        setImageData(images);
-        setSelectedImage(images[0]);
-        const updatedAlbumMetadata = { ...albumMetadata };
-        updatedAlbumMetadata.images = images;
-        const updatedAlbumArr = [...albumArr];
-        updatedAlbumArr.push(updatedAlbumMetadata);
-        setAlbumArr(updatedAlbumArr);
-      } else {
-        console.error("No images were loaded successfully.");
-        setSelectedImage(null);
-      }
-      setImagesLoading(false);
+
+      return axios
+        .post("https://api.autobiographygallery.com/api/album-image", data)
+        .then(
+          (response) => {
+            const image = response.data;
+            images[i] = image;
+
+            setImageData([...images]);
+            if (i === 0) {
+              setSelectedImage(image);
+            }
+
+            return { status: "fulfilled", value: image };
+          },
+          (error) => {
+            console.error(`Error fetching image at index ${i}:`, error);
+            return { status: "rejected", reason: error };
+          }
+        );
     });
-    // setImageData(images);
-    // setSelectedImage(images[0]);
-    // setImagesLoading(false);
+
+    Promise.allSettled(promises).then(() => {
+      const updatedAlbumMetadata = { ...albumMetadata, images: [...images] };
+      setAlbumArr((prevAlbumArr) => [...prevAlbumArr, updatedAlbumMetadata]);
+    });
   };
 
   const handleImageSelect = (item) => {
@@ -132,8 +127,9 @@ export default function Album({
   };
 
   const handleNewAlbum = async (index) => {
-    setImagesLoading(true);
     setSelectedImage(null);
+    setStoryLoading(true);
+    setImageData(new Array(4).fill(null));
     const data = {
       raw_memory: memoryInput,
       memory_elements: memoryElements,
@@ -141,7 +137,7 @@ export default function Album({
     };
     try {
       const response = await axios.post(
-        "https://autobiographygallery.com/api/generate-album",
+        "https://api.autobiographygallery.com/api/generate-album",
         data
       );
       const albumMetadata = {
@@ -149,13 +145,17 @@ export default function Album({
         id: response.data.id,
         title: response.data.title,
         story: response.data.story,
-        event: events[index]
+        event: events[index],
       };
       setAlbumData((prev) => ({
         ...prev,
         ...albumMetadata,
       }));
-      fetchImages(response.data.size, index, albumMetadata);
+      setImageData(new Array(response.data.size).fill(null));
+      setStoryLoading(false);
+      setRedoLoading(false);
+      setNextLoading(false);
+      fetchImages(response.data.size, albumMetadata);
     } catch (error) {
       console.log(error);
     }
@@ -299,26 +299,15 @@ export default function Album({
               maxHeight: "calc(100vh - 64px - 300px)",
             }}
           >
-            {imagesLoading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                }}
-              >
-                <CircularProgress size="3.5rem" />
-              </Box>
-            ) : (
-              <ImageList
-                sx={{
-                  width: "100%",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-                  gap: 2,
-                }}
-              >
-                {imageData.map((item, index) => (
+            <ImageList
+              sx={{
+                width: "100%",
+                gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                gap: 2,
+              }}
+            >
+              {imageData.map((item, index) =>
+                item ? (
                   <ImageListItem
                     key={index}
                     onClick={() => handleImageSelect(item)}
@@ -361,9 +350,17 @@ export default function Album({
                       }}
                     />
                   </ImageListItem>
-                ))}
-              </ImageList>
-            )}
+                ) : (
+                  <Skeleton
+                    key={index}
+                    variant="rectangular"
+                    width="100%"
+                    height={150}
+                    sx={{ borderRadius: "8px" }}
+                  />
+                )
+              )}
+            </ImageList>
           </Box>
           <Box
             sx={{
@@ -371,9 +368,18 @@ export default function Album({
               borderTop: "1px solid rgba(0, 0, 0, 0.12)",
             }}
           >
-            <Typography variant="subtitle2" sx={{ marginBottom: 2 }}>
-              {albumData.story}
-            </Typography>
+            {storyLoading ? (
+              <Skeleton
+                variant="rectangular"
+                width="100%"
+                height={150}
+                sx={{ borderRadius: 8 }}
+              />
+            ) : (
+              <Typography variant="subtitle2" sx={{ marginBottom: 2 }}>
+                {albumData.story}
+              </Typography>
+            )}
           </Box>
         </Box>
 
@@ -387,7 +393,6 @@ export default function Album({
             alignItems: "center",
             padding: 2,
             overflowY: "auto",
-            // backgroundColor: "#f5f5f5",
           }}
         >
           {selectedImage ? (
@@ -420,8 +425,47 @@ export default function Album({
               </Typography>
             </>
           ) : (
-            <Typography variant="h6">No image selected</Typography>
+            <Skeleton
+              variant="rectangular"
+              width={600}
+              height={600}
+              sx={{ borderRadius: 8 }}
+            />
           )}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: "20px",
+              mt: "80px",
+            }}
+          >
+            <LoadingButton
+              variant="contained"
+              endIcon={<Redo />}
+              loading={redoLoading}
+              disabled={nextLoading}
+              onClick={() => {
+                setRedoLoading(true);
+                handleNewAlbum(activeStep);
+              }}
+            >
+              REGENERATE
+            </LoadingButton>
+            <LoadingButton
+              variant="outlined"
+              endIcon={<ArrowForward />}
+              loading={nextLoading}
+              disabled={activeStep === events.length - 1 || redoLoading}
+              onClick={() => {
+                setNextLoading(true);
+                handleNext();
+              }}
+              sx={{ width: 155 }}
+            >
+              NEXT EVENT
+            </LoadingButton>
+          </Box>
         </Box>
       </Box>
       <Snackbar

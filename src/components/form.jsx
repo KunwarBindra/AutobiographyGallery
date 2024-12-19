@@ -75,7 +75,7 @@ const Form = () => {
     {
       label: "Validate memory elements",
       description:
-        "Verify events, locations, and individuals. Manually update descriptions as needed or upload a reference image (under 5 MB) of each location or individual to ensure accuracy.",
+        "Verify events, locations, and individuals. Manually update descriptions as needed or upload a reference image (under 10 MB) of each location or individual to ensure accuracy.",
     },
     {
       label: "See memory pictures!",
@@ -184,7 +184,7 @@ const Form = () => {
     try {
       console.log("Uploading...");
       const response = await fetch(
-        "https://autobiographygallery.com/api/transcribe",
+        "https://api.autobiographygallery.com/api/transcribe",
         {
           method: "POST",
           body: formData,
@@ -239,7 +239,7 @@ const Form = () => {
 
     try {
       const response = await fetch(
-        "https://autobiographygallery.com/api/describe-image",
+        "https://api.autobiographygallery.com/api/describe-image",
         {
           method: "POST",
           body: formData,
@@ -279,7 +279,7 @@ const Form = () => {
     };
     try {
       const response = await axios.post(
-        "https://autobiographygallery.com/api/memory-elements",
+        "https://api.autobiographygallery.com/api/memory-elements",
         data
       );
       setMemoryEvents(response.data);
@@ -308,7 +308,7 @@ const Form = () => {
     };
     try {
       const response = await axios.post(
-        "https://autobiographygallery.com/api/generate-album",
+        "https://api.autobiographygallery.com/api/generate-album",
         data
       );
       const albumMetadata = {
